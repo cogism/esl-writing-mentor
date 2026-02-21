@@ -151,6 +151,7 @@ def read_docx(file):
     return "\n".join([para.text for para in doc.paragraphs])
 
 # EKLENDİ: Yapay zekanın 2'ye böldüğü çıktıyı HTML'e çeviren fonksiyon
+# --- DÜZELTİLMİŞ PARSE FONKSİYONU (Tırnak İşareti ve Satır Sonu Korumalı) ---
 def parse_dual_output(raw_output: str):
     parts = raw_output.split("---RAPOR_BASLANGIC---")
     marked_text = parts[0].strip()
@@ -158,10 +159,17 @@ def parse_dual_output(raw_output: str):
     
     # regex: [ERR]yanlış|doğru|tür|neden[/ERR]
     pattern = r"\[ERR\](.*?)\|(.*?)\|(.*?)\|(.*?)\[/ERR\]"
+    
     def replace_with_html(match):
         wrong, fixed, etype, reason = match.groups()
-        # GÜNCELLENDİ: \n yerine HTML satır atlama kodu olan &#10; kullanıldı
-        return (f'<span class="err-wrapper" data-tooltip="🏷️ Tür: {etype}&#10;✨ Doğrusu: {fixed}&#10;💡 Neden: {reason}">'
+        
+        # KRİTİK DÜZELTME: HTML yapısını bozan tırnak işaretlerini güvenli hale getiriyoruz
+        # Ayrıca tooltip içinde satır sonlarının çalışması için \n yerine &#10; koyuyoruz
+        c_fixed = fixed.replace('"', '&quot;').replace("'", "&#39;").replace('\n', ' ')
+        c_reason = reason.replace('"', '&quot;').replace("'", "&#39;").replace('\n', ' ')
+        c_etype = etype.replace('\n', ' ')
+        
+        return (f'<span class="err-wrapper" data-tooltip="🏷️ Tür: {c_etype}&#10;✨ Doğrusu: {c_fixed}&#10;💡 Neden: {c_reason}">'
                 f'<span class="err-text">{wrong}</span></span>')
     
     html_marked_text = re.sub(pattern, replace_with_html, marked_text)
